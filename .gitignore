@@ -1,3 +1,6 @@
 local/.env
 /venv
 /data/context.db
+/controller/__pycache__
+/prompt/__pycache__
+*.pyc
