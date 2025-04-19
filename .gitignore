@@ -1,6 +1,26 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 虚拟环境
+venv/
+env/
+ENV/
+
+# 本地配置
 local/.env
-/venv
-/data/context.db
-/controller/__pycache__
-/prompt/__pycache__
-*.pyc
+
+# 日志文件
+logs/
+*.log
+
+# 数据库文件
+*.db
+*.sqlite3
+
+# IDE 文件
+.idea/
+.vscode/
+*.swp
+*.swo
