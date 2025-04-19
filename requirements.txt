@@ -1,0 +1,4 @@
+openai==1.75.0  # For OpenAI API interactions
+python-dateutil==2.9.0  # For timestamp handling in ContextManager
+python-dotenv==1.0.1  # For loading environment variables from .env file
+
