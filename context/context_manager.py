@@ -157,36 +157,36 @@ class ContextManager:
                 return
 
             logger.debug(f"回放上下文历史: 条数={len(rows)}, 限制={limit}, 类型={entry_type}, 会话={session_id}")
-            logger.info(f"\n===== 开始回放上下文历史 =====")
+            logger.status(f"\n===== 开始回放上下文历史 =====")
             
             current_session = None
             for timestamp, data_json, session, entry_type in rows:
                 data = json.loads(data_json)
                 if current_session != session:
                     current_session = session
-                    logger.info(f"\n----- 会话: {session} -----")
+                    logger.status(f"\n----- 会话: {session} -----")
                 
                 # 根据不同的条目类型格式化输出
                 if entry_type == "tool_result":
                     tool_name = data.get("tool", "未知工具")
                     tool_input = data.get("input", "")
                     result = data.get("result", "")
-                    logger.info(f"[{timestamp}] 工具执行: {tool_name}({tool_input})")
+                    logger.api(f"[{timestamp}] 工具执行: {tool_name}({tool_input})")
                     logger.result(f"{result}")
                 elif entry_type == "error":
                     error_msg = data.get("error", "未知错误")
-                    logger.info(f"[{timestamp}] 错误: {error_msg}")
+                    logger.error(f"[{timestamp}] 错误: {error_msg}")
                 elif entry_type == "human_input":
                     human_input = data.get("human_input", "")
-                    logger.info(f"[{timestamp}] 人工输入: {human_input}")
+                    logger.user(f"[{timestamp}] 人工输入: {human_input}")
                 elif entry_type == "stop":
                     result = data.get("result", "")
-                    logger.info(f"[{timestamp}] 最终结果:")
+                    logger.status(f"[{timestamp}] 最终结果:")
                     logger.result(f"{result}")
                 else:
                     logger.info(f"[{timestamp}] {entry_type}: {data}")
             
-            logger.info(f"\n===== 上下文历史回放结束 =====")    
+            logger.status(f"\n===== 上下文历史回放结束 =====")    
             return rows
         except Exception as e:
             logger.error(f"回放上下文历史失败: {str(e)}")

@@ -14,7 +14,7 @@ from utils.debug_tools import is_dev_mode, memory_usage
 env_path = Path("local") / ".env"
 if env_path.exists():
     load_dotenv(env_path)
-    logger.info(f"已加载环境变量: {env_path}")
+    logger.success(f"已加载环境变量: {env_path}")
 else:
     logger.warning(f"未找到 {env_path}，使用系统环境变量或默认值。")
 
@@ -33,14 +33,14 @@ async def main():
     
     # 显示运行环境
     env_mode = "开发模式" if is_dev_mode() else "生产模式"
-    logger.info(f"Mixlab Agent 启动 ({env_mode})")
-    logger.info(f"使用模型: {config['model']}")
+    logger.status(f"Mixlab Agent 启动 ({env_mode})")
+    logger.data(f"使用模型: {config['model']}")
     
     if is_dev_mode():
         # 在开发模式下显示内存使用情况
         memory_mb = memory_usage()
         if memory_mb:
-            logger.debug(f"初始内存使用: {memory_mb:.2f} MB")
+            logger.data(f"初始内存使用: {memory_mb:.2f} MB")
 
     tools = [CalculatorTool()]
     logger.debug(f"已加载工具: {[tool.name for tool in tools]}")
@@ -56,9 +56,9 @@ async def main():
     agent = AgentController(tools, llm_client, context_manager, config)
 
     # 第一次启动 agent
-    logger.info("\n=== 开始第一个会话 ===")
+    logger.status("\n=== 开始第一个会话 ===")
     await agent.start("Calculate 3 + 2")
-    logger.info(f"当前会话 ID: {agent.get_current_session_id()}")
+    logger.data(f"当前会话 ID: {agent.get_current_session_id()}")
 
     # # 第二次启动 agent（新会话）
     # logger.info("\n=== 开始第二个会话 ===")
@@ -66,16 +66,16 @@ async def main():
     # logger.info(f"当前会话 ID: {agent.get_current_session_id()}")
 
     # # 打印所有会话
-    logger.info("\n=== 所有会话列表 ===")
+    logger.status("\n=== 所有会话列表 ===")
     sessions = context_manager.get_sessions()
     for idx, session_id in enumerate(sessions, 1):
-        logger.info(f"{idx}. {session_id}")
+        logger.user(f"{idx}. {session_id}")
 
     # # 回放所有会话的上下文历史
-    logger.info("\n=== 回放所有会话上下文历史 ===")
+    logger.status("\n=== 回放所有会话上下文历史 ===")
     context_manager.replay()
     
-    logger.info("Mixlab Agent 运行完成")
+    logger.success("Mixlab Agent 运行完成")
 
  
 if __name__ == "__main__":

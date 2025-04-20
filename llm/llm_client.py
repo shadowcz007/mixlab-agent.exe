@@ -13,7 +13,7 @@ class LLMClient:
 
     async def generate(self, prompt):
         logger.debug(f"发送请求到LLM: 模型={self.model}, 提示长度={len(prompt)}")
-        logger.info(f"开始请求LLM: 模型={self.model}")
+        logger.api(f"开始请求LLM: 模型={self.model}")
         start_time = time.time()
         
         try:
@@ -36,13 +36,13 @@ class LLMClient:
                     
                     # 仅在开发环境或到达标记点时记录进度
                     if total_tokens in progress_marks:
-                        logger.info(f"LLM响应进度: 已生成 {total_tokens} tokens")
+                        logger.data(f"LLM响应进度: 已生成 {total_tokens} tokens")
                         
                     yield content
             
             elapsed_time = time.time() - start_time
             logger.debug(f"LLM响应完成: 耗时={elapsed_time:.2f}秒, 生成tokens={total_tokens}")
-            logger.info(f"LLM响应完成: 共生成 {total_tokens} tokens, 耗时 {elapsed_time:.2f}秒")
+            logger.success(f"LLM响应完成: 共生成 {total_tokens} tokens, 耗时 {elapsed_time:.2f}秒")
             
         except Exception as e:
             logger.error(f"LLM调用错误: {str(e)}")

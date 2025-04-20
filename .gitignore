@@ -24,3 +24,7 @@ logs/
 .vscode/
 *.swp
 *.swo
+/llm/__pycache__
+/context/__pycache__
+/llm/__pycache__
+*.pyc

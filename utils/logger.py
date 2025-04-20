@@ -19,15 +19,45 @@ class ColoredFormatter(logging.Formatter):
         'CRITICAL': colorama.Fore.RED + colorama.Style.BRIGHT
     }
     
+    # INFO级别的细分颜色
+    INFO_COLORS = {
+        'DEFAULT': colorama.Fore.GREEN,
+        'SUCCESS': colorama.Fore.LIGHTGREEN_EX,
+        'RESULT': colorama.Fore.BLUE,
+        'STATUS': colorama.Fore.MAGENTA,
+        'DATA': colorama.Fore.LIGHTCYAN_EX,
+        'API': colorama.Fore.LIGHTBLUE_EX,
+        'USER': colorama.Fore.LIGHTYELLOW_EX
+    }
+    
     def format(self, record):
         # 保存原始格式
         format_orig = self._style._fmt
         
         # 根据日志级别添加颜色
         if record.levelname in self.COLORS:
-            # 为INFO级别提供一个更简洁的格式
             if record.levelname == 'INFO':
-                self._style._fmt = f"{self.COLORS[record.levelname]}%(message)s{colorama.Style.RESET_ALL}"
+                # 检查是否有特定的INFO类型
+                info_type = getattr(record, 'info_type', 'DEFAULT')
+                color = self.INFO_COLORS.get(info_type, self.INFO_COLORS['DEFAULT'])
+                
+                # 根据不同的INFO类型使用不同的格式
+                if info_type == 'RESULT':
+                    prefix = '▶ 结果: '
+                elif info_type == 'SUCCESS':
+                    prefix = '✓ '
+                elif info_type == 'STATUS':
+                    prefix = '⚡ '
+                elif info_type == 'DATA':
+                    prefix = '📊 '
+                elif info_type == 'API':
+                    prefix = '🔌 '
+                elif info_type == 'USER':
+                    prefix = '👤 '
+                else:
+                    prefix = ''
+                
+                self._style._fmt = f"{color}{prefix}%(message)s{colorama.Style.RESET_ALL}"
             else:
                 self._style._fmt = f"{self.COLORS[record.levelname]}%(asctime)s - %(name)s - %(levelname)s - %(message)s{colorama.Style.RESET_ALL}"
                 
@@ -80,9 +110,30 @@ class Logger:
         if self.is_dev:
             self.logger.debug(message)
     
-    def info(self, message):
-        """记录一般信息"""
-        self.logger.info(message)
+    def info(self, message, info_type='DEFAULT'):
+        """记录一般信息，可以指定INFO的子类型"""
+        extra = {'info_type': info_type}
+        self.logger.info(message, extra=extra)
+    
+    def success(self, message):
+        """记录成功信息（使用INFO级别，但有特殊颜色和格式）"""
+        self.info(message, info_type='SUCCESS')
+    
+    def status(self, message):
+        """记录状态更新信息（使用INFO级别，但有特殊颜色和格式）"""
+        self.info(message, info_type='STATUS')
+    
+    def data(self, message):
+        """记录数据相关信息（使用INFO级别，但有特殊颜色和格式）"""
+        self.info(message, info_type='DATA')
+    
+    def api(self, message):
+        """记录API相关信息（使用INFO级别，但有特殊颜色和格式）"""
+        self.info(message, info_type='API')
+    
+    def user(self, message):
+        """记录用户相关信息（使用INFO级别，但有特殊颜色和格式）"""
+        self.info(message, info_type='USER')
     
     def warning(self, message):
         """记录警告信息"""
@@ -98,8 +149,7 @@ class Logger:
     
     def result(self, message):
         """记录重要结果（使用INFO级别，但有特殊格式）"""
-        formatted_message = f"▶ 结果: {message}"
-        self.logger.info(formatted_message)
+        self.info(message, info_type='RESULT')
 
 # 创建默认日志记录器实例
 logger = Logger() 
