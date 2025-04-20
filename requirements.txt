@@ -5,4 +5,5 @@ sqlite3>=2.6.0
 uuid>=1.30
 psutil>=5.9.0
 colorama>=0.4.4  # 为终端输出添加颜色支持
+mcp
 
