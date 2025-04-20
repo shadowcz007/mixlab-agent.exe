@@ -28,3 +28,4 @@ logs/
 /context/__pycache__
 /llm/__pycache__
 *.pyc
+/context/__pycache__

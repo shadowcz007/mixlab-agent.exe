@@ -17,7 +17,7 @@ class LLMClient:
         start_time = time.time()
         
         try:
-            stream = await self.client.chat.completions.create(
+            response = await self.client.chat.completions.create(
                 model=self.model,
                 messages=[
                     {"role": "system", "content": "You are an AI assistant."},
@@ -29,9 +29,12 @@ class LLMClient:
             total_tokens = 0
             progress_marks = [25, 50, 75, 100]  # 用于记录进度的标记点（token数）
             
-            async for chunk in stream:
+            full_content = ""
+            
+            async for chunk in response:
                 if chunk.choices[0].delta.content:
                     content = chunk.choices[0].delta.content
+                    full_content += content
                     total_tokens += 1
                     
                     # 仅在开发环境或到达标记点时记录进度
@@ -43,6 +46,9 @@ class LLMClient:
             elapsed_time = time.time() - start_time
             logger.debug(f"LLM响应完成: 耗时={elapsed_time:.2f}秒, 生成tokens={total_tokens}")
             logger.success(f"LLM响应完成: 共生成 {total_tokens} tokens, 耗时 {elapsed_time:.2f}秒")
+            
+            # 返回额外元数据，包括token消耗
+            yield {"__metadata__": {"tokens_used": total_tokens, "model": self.model}}
             
         except Exception as e:
             logger.error(f"LLM调用错误: {str(e)}")

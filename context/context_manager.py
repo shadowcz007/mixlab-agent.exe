@@ -26,7 +26,8 @@ class ContextManager:
                         timestamp TEXT NOT NULL,
                         data TEXT NOT NULL,
                         entry_type TEXT NOT NULL,
-                        session_id TEXT NOT NULL
+                        session_id TEXT NOT NULL,
+                        tokens_used INTEGER DEFAULT 0
                     )
                 """)
                 cursor.execute("CREATE INDEX IF NOT EXISTS idx_timestamp ON context (timestamp)")
@@ -38,7 +39,7 @@ class ContextManager:
             logger.error(f"数据库初始化失败: {str(e)}")
             raise
 
-    def add(self, data, entry_type="general"):
+    def add(self, data, entry_type="general", tokens_used=0):
         """Add a context entry to the database."""
         if entry_type not in VALID_ENTRY_TYPES:
             error_msg = f"无效的条目类型: {entry_type}. 必须是 {VALID_ENTRY_TYPES} 之一"
@@ -51,12 +52,12 @@ class ContextManager:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 cursor.execute(
-                    "INSERT INTO context (timestamp, data, entry_type, session_id) VALUES (?, ?, ?, ?)",
-                    (timestamp, data_json, entry_type, self.session_id)
+                    "INSERT INTO context (timestamp, data, entry_type, session_id, tokens_used) VALUES (?, ?, ?, ?, ?)",
+                    (timestamp, data_json, entry_type, self.session_id, tokens_used)
                 )
                 entry_id = cursor.lastrowid
                 conn.commit()
-                logger.debug(f"添加上下文条目: ID={entry_id}, 类型={entry_type}, 会话={self.session_id}")
+                logger.debug(f"添加上下文条目: ID={entry_id}, 类型={entry_type}, 会话={self.session_id}, token消耗={tokens_used}")
                 return entry_id
         except Exception as e:
             logger.error(f"添加上下文条目失败: {str(e)}")
@@ -246,4 +247,65 @@ class ContextManager:
                 ]
         except Exception as e:
             logger.error(f"查询上下文条目失败: {str(e)}")
+            raise
+            
+    def get_token_usage(self, session_id=None, start_time=None, end_time=None):
+        """获取token使用统计
+        
+        Args:
+            session_id (str, optional): 会话ID，不指定则查询所有会话
+            start_time (str, optional): 开始时间(ISO格式)
+            end_time (str, optional): 结束时间(ISO格式)
+            
+        Returns:
+            dict: token使用统计信息，包括总量和各会话的分布
+        """
+        query = "SELECT session_id, SUM(tokens_used) as total FROM context"
+        params = []
+        conditions = []
+        
+        if session_id:
+            conditions.append("session_id = ?")
+            params.append(session_id)
+        if start_time:
+            conditions.append("timestamp >= ?")
+            params.append(start_time)
+        if end_time:
+            conditions.append("timestamp <= ?")
+            params.append(end_time)
+            
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
+            
+        query += " GROUP BY session_id"
+        
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                
+                # 获取总token消耗
+                total_query = "SELECT SUM(tokens_used) FROM context"
+                total_params = []
+                
+                if conditions:
+                    total_query += " WHERE " + " AND ".join(conditions)
+                    total_params.extend(params)
+                
+                cursor.execute(total_query, total_params)
+                total_tokens = cursor.fetchone()[0] or 0
+                
+                # 获取会话分布
+                cursor.execute(query, params)
+                sessions = {}
+                for session_id, tokens in cursor.fetchall():
+                    sessions[session_id] = tokens
+                
+                logger.debug(f"Token使用统计: 总量={total_tokens}, 会话数={len(sessions)}")
+                
+                return {
+                    "total_tokens": total_tokens,
+                    "sessions": sessions
+                }
+        except Exception as e:
+            logger.error(f"获取token使用统计失败: {str(e)}")
             raise

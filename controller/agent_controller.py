@@ -26,6 +26,9 @@ class AgentController:
         logger.debug(f"用户输入: {user_input}")
         logger.info(f"用户指令: {user_input}")
         
+        # 记录用户输入到上下文
+        self.context_manager.add({"human_input": user_input}, entry_type="human_input")
+        
         while self.running and not self.paused:
             start_time = time.time()
             
@@ -36,12 +39,19 @@ class AgentController:
             decision = await parse_response(response_stream)
             logger.debug(f"解析响应: {decision}")
             
+            # 提取元数据（如token消耗）
+            tokens_used = 0
+            if "__metadata__" in decision:
+                metadata = decision.pop("__metadata__")  # 从决策中移除元数据
+                tokens_used = metadata.get("tokens_used", 0)
+                logger.debug(f"本次请求消耗token: {tokens_used}")
+            
             if decision.get("tool") == "stop":
                 self.running = False
                 result = decision.get("result", "")
                 logger.debug("收到停止指令，完成会话")
                 logger.result(result)
-                self.context_manager.add({"result": result}, entry_type="stop")
+                self.context_manager.add({"result": result}, entry_type="stop", tokens_used=tokens_used)
                 break
 
             tool_name = decision.get("tool")
@@ -58,17 +68,25 @@ class AgentController:
                     tool_elapsed = time.time() - tool_start_time
                     logger.debug(f"工具执行成功: {tool_name}, 耗时={tool_elapsed:.2f}秒")
                     logger.result(f"{tool_name} 结果: {result}")
-                    self.context_manager.add({"tool": tool_name, "input": tool_input, "result": result}, entry_type="tool_result")
+                    self.context_manager.add(
+                        {"tool": tool_name, "input": tool_input, "result": result},
+                        entry_type="tool_result", 
+                        tokens_used=tokens_used
+                    )
                 except Exception as e:
                     error_msg = str(e)
                     logger.error(f"工具执行错误: {tool_name}, 错误={error_msg}")
                     logger.info(f"错误: {error_msg}")
-                    self.context_manager.add({"tool": tool_name, "input": tool_input, "error": error_msg}, entry_type="error")
+                    self.context_manager.add(
+                        {"tool": tool_name, "input": tool_input, "error": error_msg},
+                        entry_type="error",
+                        tokens_used=tokens_used
+                    )
             else:
                 error_msg = f"工具 '{tool_name}' 未找到"
                 logger.warning(error_msg)
                 logger.info(f"错误: {error_msg}")
-                self.context_manager.add({"error": error_msg}, entry_type="error")
+                self.context_manager.add({"error": error_msg}, entry_type="error", tokens_used=tokens_used)
 
             if self.config.get("collaboration", False):
                 logger.debug("进入协作模式，等待人工输入")
@@ -78,7 +96,7 @@ class AgentController:
                 user_input = human_input  # Update input for next iteration
             
             elapsed_time = time.time() - start_time
-            logger.debug(f"本轮交互完成: 耗时={elapsed_time:.2f}秒")
+            logger.debug(f"本轮交互完成: 耗时={elapsed_time:.2f}秒, token消耗={tokens_used}")
         
 
     async def _get_human_input(self):

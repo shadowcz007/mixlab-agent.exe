@@ -75,6 +75,14 @@ async def main():
     logger.status("\n=== 回放所有会话上下文历史 ===")
     context_manager.replay()
     
+    # 展示token消耗统计
+    logger.status("\n=== Token消耗统计 ===")
+    token_stats = context_manager.get_token_usage()
+    logger.data(f"总Token消耗: {token_stats['total_tokens']}")
+    
+    for session_id, tokens in token_stats['sessions'].items():
+        logger.data(f"会话 {session_id}: {tokens} tokens")
+    
     logger.success("Mixlab Agent 运行完成")
 
  
